@@ -7634,7 +7634,12 @@ uint8_t *XE::display13SSTPort(void *port) {
  auto p=static_cast<uint8_t *>(port);auto config=Display13FBMemory::field<uint32_t *>(p,0x548);
  if(!Display13FBTopology::selected(s->adlnPlatform,config,s->adlnOutputWiring) ||
     !(s->adlnOutputWiring.links()&(1U<<config[0])) || p[0x117] ||
-    Display13FBMemory::field<uint32_t>(p,0x120)!=config[0] || Display13FBMemory::field<uint32_t>(p,0x550)!=(config[0]>=3?((s->adlnOutputWiring.typeC&(1U<<config[0]))?3U:4U):1U) ||
+    Display13FBMemory::field<uint32_t>(p,0x120)!=config[0] ||
+    // Combo ports: the donor reports 1 for an active DP SST link and 0 for the
+    // firmware/GOP-driven eDP boot port on RPL-U. The AUX path already treats
+    // any value up to 1 as valid; only values above 1 are invalid there.
+    // Type-C ports keep their exact 3/4 mode.
+    (config[0]>=3 ? Display13FBMemory::field<uint32_t>(p,0x550)!=((s->adlnOutputWiring.typeC&(1U<<config[0]))?3U:4U) : Display13FBMemory::field<uint32_t>(p,0x550)>1U) ||
     Display13FBMemory::field<void *>(p,0x578)!=c.access)return nullptr;
  return p;
 }
